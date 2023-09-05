@@ -12,8 +12,7 @@ cloud.google.com/go/longrunning v0.5.0/go.mod h1:0JNuqRShmscVAhIACGtskSAWtqtOoPk
 cloud.google.com/go/security v1.14.1/go.mod h1:ItQAI0zVZd1OkHh+raoef892dsr7VY2QzMDJ4nOPtOs=
 filippo.io/edwards25519 v1.0.0 h1:0wAIcmJUqRdI8IJ/3eGi5/HwXZWPujYXXlkrQogz0Ek=
 filippo.io/edwards25519 v1.0.0/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
-github.com/1121170088/go-socks5 v1.0.0 h1:8T46NEjJiIww87Dbh1042dD3D3Q6aEgVPxFJ/+pFzAE=
-github.com/1121170088/go-socks5 v1.0.0/go.mod h1:QSuCCp705ukpbZMGTQrjvwANFB+M275wQ3/9OtArV8g=
+github.com/1121170088/go-socks5 v1.0.1 h1:g4jcPzbhZifQe8mtmjbOQOudKMxTqTGRwaAF7NLNpgs=
 github.com/1121170088/go-socks5 v1.0.1/go.mod h1:QSuCCp705ukpbZMGTQrjvwANFB+M275wQ3/9OtArV8g=
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIoKjsnZuH8vjyaysT/ses3EvZeaV/1UkF2M=
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
@@ -480,7 +479,6 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/tailscale/tscert v0.0.0-20230509043813-4e9cb4f2b4ad h1:JEOo9j4RzDPBJFTU9YZ/QPkLtfV8+6PbZFFOSUx5VP4=
 github.com/tailscale/tscert v0.0.0-20230509043813-4e9cb4f2b4ad/go.mod h1:kNGUQ3VESx3VZwRwA9MSCUegIl6+saPL8Noq82ozCaU=
 github.com/thales-e-security/pool v0.0.2/go.mod h1:qtpMm2+thHtqhLzTwgDBj/OuNnMpupY8mv0Phz0gjhU=
-github.com/things-go/go-socks5 v0.0.3/go.mod h1:f8Zx+n8kfzyT90hXM767cP6sysAud93+t9rV90IgMcg=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/urfave/cli v1.22.14 h1:ebbhrRiGK2i4naQJr+1Xj92HXZCrK7MsyTS/ob3HnAk=
 github.com/urfave/cli v1.22.14/go.mod h1:X0eDS6pD6Exaclxm99NJ3FiCDRED7vIHpx2mDOHLvkA=

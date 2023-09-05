@@ -26,6 +26,7 @@ type Socks5Handler struct {
 	Upstream string `json:"upstream,omitempty"`
 
 	server *socks5.Server
+	logger *zap.Logger
 }
 
 func (Socks5Handler) CaddyModule() caddy.ModuleInfo {
@@ -36,6 +37,7 @@ func (Socks5Handler) CaddyModule() caddy.ModuleInfo {
 }
 
 func (h *Socks5Handler) Provision(ctx caddy.Context) error {
+	h.logger = ctx.Logger(h)
 	rule := &socks5.PermitCommand{EnableConnect: false, EnableAssociate: false, EnableBind: false}
 	if len(h.Commands) == 0 {
 		rule.EnableConnect = true
@@ -78,6 +80,9 @@ func (h *Socks5Handler) Provision(ctx caddy.Context) error {
 
 // Handle handles the SOCKSv5 connection.
 func (h *Socks5Handler) Handle(cx *layer4.Connection, _ layer4.Handler) error {
+	h.logger.Debug("socks5 inbound",
+		zap.String("remote", cx.RemoteAddr().String()),
+	)
 	return h.server.ServeConn(cx)
 }
 

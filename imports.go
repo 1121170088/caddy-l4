@@ -28,4 +28,5 @@ import (
 	_ "github.com/mholt/caddy-l4/modules/l4throttle"
 	_ "github.com/mholt/caddy-l4/modules/l4tls"
 	_ "github.com/mholt/caddy-l4/modules/l4xmpp"
+	_ "github.com/mholt/caddy-l4/modules/l4openvpntcp"
 )
