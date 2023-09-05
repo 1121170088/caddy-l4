@@ -23,6 +23,8 @@ type Socks5Handler struct {
 	// Map of username:password to active authentication. Default: no authentication.
 	Credentials map[string]string `json:"credentials,omitempty"`
 
+	Upstream string `json:"upstream,omitempty"`
+
 	server *socks5.Server
 }
 
@@ -68,6 +70,7 @@ func (h *Socks5Handler) Provision(ctx caddy.Context) error {
 		socks5.WithRule(rule),
 		socks5.WithBindIP(net.ParseIP(h.BindIP)),
 		socks5.WithAuthMethods(authMethods),
+		socks5.WithUpstream(h.Upstream),
 	)
 
 	return nil
