@@ -2,7 +2,7 @@ module github.com/mholt/caddy-l4
 
 go 1.20
 
-replace github.com/things-go/go-socks5 => github.com/1121170088/go-socks5 v1.0.1
+replace github.com/things-go/go-socks5 => github.com/1121170088/go-socks5 v1.0.2
 
 require (
 	github.com/caddyserver/caddy/v2 v2.7.3
