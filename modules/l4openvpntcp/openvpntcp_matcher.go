@@ -31,9 +31,14 @@ func (m OpenvpnMatcher) Match(cx *layer4.Connection) (bool, error) {
 		return false, err
 	}
 
-	mtype := msgtype[0] >> 3
+	opcode := msgtype[0] >> 3
 
-	if mtype < 1 || mtype > 9 {
+	keyid := msgtype[0] & 0x07
+
+	if opcode < 1 || opcode > 9 {
+		return false, nil
+	}
+	if keyid != 0 {
 		return false, nil
 	}
 	return true, nil
