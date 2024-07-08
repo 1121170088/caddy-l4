@@ -15,8 +15,10 @@
 package layer4
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 
 	"github.com/caddyserver/caddy/v2"
@@ -26,6 +28,7 @@ import (
 func init() {
 	caddy.RegisterModule(MatchIP{})
 	caddy.RegisterModule(MatchLocalIP{})
+	caddy.RegisterModule(MatchNot{})
 }
 
 // ConnMatcher is a type that can match a connection.
@@ -45,9 +48,9 @@ type MatcherSet []ConnMatcher
 // or if there are no matchers. Any error terminates matching.
 func (mset MatcherSet) Match(cx *Connection) (matched bool, err error) {
 	for _, m := range mset {
-		cx.record()
+		cx.freeze()
 		matched, err = m.Match(cx)
-		cx.rewind()
+		cx.unfreeze()
 		if cx.Logger.Core().Enabled(zap.DebugLevel) {
 			matcher := "unknown"
 			if cm, ok := m.(caddy.Module); ok {
@@ -109,8 +112,7 @@ func (mss *MatcherSets) FromInterface(matcherSets interface{}) error {
 // MatchIP matches requests by remote IP (or CIDR range).
 type MatchIP struct {
 	Ranges []string `json:"ranges,omitempty"`
-
-	cidrs []*net.IPNet
+	cidrs  []netip.Prefix
 }
 
 // CaddyModule returns the Caddy module information.
@@ -144,7 +146,7 @@ func (m MatchIP) Match(cx *Connection) (bool, error) {
 	return false, nil
 }
 
-func (m MatchIP) getClientIP(cx *Connection) (net.IP, error) {
+func (m MatchIP) getClientIP(cx *Connection) (netip.Addr, error) {
 	remote := cx.Conn.RemoteAddr().String()
 
 	ipStr, _, err := net.SplitHostPort(remote)
@@ -152,11 +154,10 @@ func (m MatchIP) getClientIP(cx *Connection) (net.IP, error) {
 		ipStr = remote // OK; probably didn't have a port
 	}
 
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return nil, fmt.Errorf("invalid client IP address: %s", ipStr)
+	ip, err := netip.ParseAddr(ipStr)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("invalid client IP address: %s", ipStr)
 	}
-
 	return ip, nil
 }
 
@@ -164,7 +165,7 @@ func (m MatchIP) getClientIP(cx *Connection) (net.IP, error) {
 type MatchLocalIP struct {
 	Ranges []string `json:"ranges,omitempty"`
 
-	cidrs []*net.IPNet
+	cidrs []netip.Prefix
 }
 
 // CaddyModule returns the Caddy module information.
@@ -177,25 +178,11 @@ func (MatchLocalIP) CaddyModule() caddy.ModuleInfo {
 
 // Provision parses m's IP ranges, either from IP or CIDR expressions.
 func (m *MatchLocalIP) Provision(ctx caddy.Context) error {
-	for _, str := range m.Ranges {
-		if strings.Contains(str, "/") {
-			_, ipNet, err := net.ParseCIDR(str)
-			if err != nil {
-				return fmt.Errorf("parsing CIDR expression: %v", err)
-			}
-			m.cidrs = append(m.cidrs, ipNet)
-		} else {
-			ip := net.ParseIP(str)
-			if ip == nil {
-				return fmt.Errorf("invalid IP address: %s", str)
-			}
-			mask := len(ip) * 8
-			m.cidrs = append(m.cidrs, &net.IPNet{
-				IP:   ip,
-				Mask: net.CIDRMask(mask, mask),
-			})
-		}
+	ipnets, err := ParseNetworks(m.Ranges)
+	if err != nil {
+		return err
 	}
+	m.cidrs = ipnets
 	return nil
 }
 
@@ -213,7 +200,7 @@ func (m MatchLocalIP) Match(cx *Connection) (bool, error) {
 	return false, nil
 }
 
-func (m MatchLocalIP) getLocalIP(cx *Connection) (net.IP, error) {
+func (m MatchLocalIP) getLocalIP(cx *Connection) (netip.Addr, error) {
 	remote := cx.Conn.LocalAddr().String()
 
 	ipStr, _, err := net.SplitHostPort(remote)
@@ -221,43 +208,127 @@ func (m MatchLocalIP) getLocalIP(cx *Connection) (net.IP, error) {
 		ipStr = remote // OK; probably didn't have a port
 	}
 
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return nil, fmt.Errorf("invalid local IP address: %s", ipStr)
+	ip, err := netip.ParseAddr(ipStr)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("invalid local IP address: %s", ipStr)
 	}
-
 	return ip, nil
+}
+
+// MatchNot matches requests by negating the results of its matcher
+// sets. A single "not" matcher takes one or more matcher sets. Each
+// matcher set is OR'ed; in other words, if any matcher set returns
+// true, the final result of the "not" matcher is false. Individual
+// matchers within a set work the same (i.e. different matchers in
+// the same set are AND'ed).
+//
+// NOTE: The generated docs which describe the structure of this
+// module are wrong because of how this type unmarshals JSON in a
+// custom way. The correct structure is:
+//
+// ```json
+// [
+//
+//	{},
+//	{}
+//
+// ]
+// ```
+//
+// where each of the array elements is a matcher set, i.e. an
+// object keyed by matcher name.
+type MatchNot struct {
+	MatcherSetsRaw []caddy.ModuleMap `json:"-" caddy:"namespace=layer4.matchers"`
+	MatcherSets    []MatcherSet      `json:"-"`
+}
+
+// CaddyModule implements caddy.Module.
+func (MatchNot) CaddyModule() caddy.ModuleInfo {
+	return caddy.ModuleInfo{
+		ID:  "layer4.matchers.not",
+		New: func() caddy.Module { return new(MatchNot) },
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler. It puts the JSON
+// bytes directly into m's MatcherSetsRaw field.
+func (m *MatchNot) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &m.MatcherSetsRaw)
+}
+
+// MarshalJSON satisfies json.Marshaler by marshaling
+// m's raw matcher sets.
+func (m MatchNot) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.MatcherSetsRaw)
+}
+
+// Provision loads the matcher modules to be negated.
+func (m *MatchNot) Provision(ctx caddy.Context) error {
+	matcherSets, err := ctx.LoadModule(m, "MatcherSetsRaw")
+	if err != nil {
+		return fmt.Errorf("loading matcher sets: %v", err)
+	}
+	for _, modMap := range matcherSets.([]map[string]any) {
+		var ms MatcherSet
+		for _, modIface := range modMap {
+			ms = append(ms, modIface.(ConnMatcher))
+		}
+		m.MatcherSets = append(m.MatcherSets, ms)
+	}
+	return nil
+}
+
+// Match returns true if r matches m. Since this matcher negates
+// the embedded matchers, false is returned if any of its matcher
+// sets return true.
+func (m MatchNot) Match(r *Connection) (bool, error) {
+	for _, ms := range m.MatcherSets {
+		match, err := ms.Match(r)
+		if err != nil {
+			return false, err
+		}
+		if match {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // Interface guards
 var (
+	_ caddy.Module      = (*MatchIP)(nil)
 	_ ConnMatcher       = (*MatchIP)(nil)
 	_ caddy.Provisioner = (*MatchIP)(nil)
+	_ caddy.Module      = (*MatchLocalIP)(nil)
 	_ ConnMatcher       = (*MatchLocalIP)(nil)
 	_ caddy.Provisioner = (*MatchLocalIP)(nil)
+	_ caddy.Module      = (*MatchNot)(nil)
+	_ caddy.Provisioner = (*MatchNot)(nil)
+	_ ConnMatcher       = (*MatchNot)(nil)
 )
 
 // ParseNetworks parses a list of string IP addresses or CDIR subnets into a slice of net.IPNet's.
 // It accepts for example ["127.0.0.1", "127.0.0.0/8", "::1", "2001:db8::/32"].
-func ParseNetworks(networks []string) (ipNets []*net.IPNet, err error) {
+func ParseNetworks(networks []string) (ipNets []netip.Prefix, err error) {
 	for _, str := range networks {
 		if strings.Contains(str, "/") {
-			_, ipNet, err := net.ParseCIDR(str)
+			ipNet, err := netip.ParsePrefix(str)
 			if err != nil {
 				return nil, fmt.Errorf("parsing CIDR expression: %v", err)
 			}
 			ipNets = append(ipNets, ipNet)
-		} else {
-			ip := net.ParseIP(str)
-			if ip == nil {
-				return ipNets, fmt.Errorf("invalid IP address: %s", str)
-			}
-			mask := len(ip) * 8
-			ipNets = append(ipNets, &net.IPNet{
-				IP:   ip,
-				Mask: net.CIDRMask(mask, mask),
-			})
+			continue
 		}
+
+		addr, err := netip.ParseAddr(str)
+		if err != nil {
+			return nil, err
+		}
+		bits := 32
+		if addr.Is6() {
+			bits = 128
+		}
+		ipNets = append(ipNets, netip.PrefixFrom(addr, bits))
 	}
 	return ipNets, nil
 }

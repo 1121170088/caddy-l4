@@ -21,6 +21,8 @@ Because this is a caddy app, it can be used alongside other Caddy apps such as t
 
 Note that only JSON config is available at this time. More documentation will come soon. For now, please read the code, especially type definitions and their comments. It's actually a pretty simple code base, and the JSON config isn't that bad once you get used to it! See below for tips and examples writing config.
 
+> [!NOTE]
+> This is not an official repository of the [Caddy Web Server](https://github.com/caddyserver) organization.
 
 ## Introduction
 
@@ -31,6 +33,7 @@ Current matchers:
 - **layer4.matchers.http** - matches connections that start with HTTP requests. In addition, any [`http.matchers` modules](https://caddyserver.com/docs/modules/) can be used for matching on HTTP-specific properties of requests, such as header or path. Note that only the first request of each connection can be used for matching.
 - **layer4.matchers.tls** - matches connections that start with TLS handshakes. In addition, any [`tls.handshake_match` modules](https://caddyserver.com/docs/modules/) can be used for matching on TLS-specific properties of the ClientHello, such as ServerName (SNI).
 - **layer4.matchers.ssh** - matches connections that look like SSH connections.
+- **layer4.matchers.postgres** - matches connections that look like Postgres connections.
 - **layer4.matchers.ip** - matches connections based on remote IP (or CIDR range).
 - **layer4.matchers.local_ip** - matches connections based on local IP (or CIDR range).
 - **layer4.matchers.proxy_protocol** - matches connections that start with [HAPROXY proxy protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt).
