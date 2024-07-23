@@ -34,9 +34,10 @@ Current matchers:
 - **layer4.matchers.tls** - matches connections that start with TLS handshakes. In addition, any [`tls.handshake_match` modules](https://caddyserver.com/docs/modules/) can be used for matching on TLS-specific properties of the ClientHello, such as ServerName (SNI).
 - **layer4.matchers.ssh** - matches connections that look like SSH connections.
 - **layer4.matchers.postgres** - matches connections that look like Postgres connections.
-- **layer4.matchers.ip** - matches connections based on remote IP (or CIDR range).
+- **layer4.matchers.remote_ip** - matches connections based on remote IP (or CIDR range).
 - **layer4.matchers.local_ip** - matches connections based on local IP (or CIDR range).
 - **layer4.matchers.proxy_protocol** - matches connections that start with [HAPROXY proxy protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt).
+- **layer4.matchers.rdp** - matches connections that look like [RDP](https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-RDPBCGR/%5BMS-RDPBCGR%5D.pdf).
 - **layer4.matchers.socks4** - matches connections that look like [SOCKSv4](https://www.openssh.com/txt/socks4.protocol).
 - **layer4.matchers.socks5** - matches connections that look like [SOCKSv5](https://www.rfc-editor.org/rfc/rfc1928.html).
 
@@ -367,7 +368,7 @@ While only allowing connections from a specific network and requiring a username
 							"match": [
 								{
 									"socks5": {},
-									"ip": {"ranges": ["10.0.0.0/24"]}
+									"remote_ip": {"ranges": ["10.0.0.0/24"]}
 								}
 							],
 							"handle": [
