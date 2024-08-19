@@ -40,7 +40,8 @@ func (*Socks5Handler) CaddyModule() caddy.ModuleInfo {
 }
 
 func (h *Socks5Handler) Provision(ctx caddy.Context) error {
-	h.logger = ctx.Logger(h)
+	repl := caddy.NewReplacer()
+
 	rule := &socks5.PermitCommand{EnableConnect: false, EnableAssociate: false, EnableBind: false}
 	if len(h.Commands) == 0 {
 		rule.EnableConnect = true
@@ -48,7 +49,7 @@ func (h *Socks5Handler) Provision(ctx caddy.Context) error {
 		// BIND is currently not supported, so we don't allow it by default
 	} else {
 		for _, c := range h.Commands {
-			switch strings.ToUpper(c) {
+			switch strings.ToUpper(repl.ReplaceAll(c, "")) {
 			case "CONNECT":
 				rule.EnableConnect = true
 			case "ASSOCIATE":
@@ -61,11 +62,19 @@ func (h *Socks5Handler) Provision(ctx caddy.Context) error {
 		}
 	}
 
+	credentials := make(map[string]string, len(h.Credentials))
+	for k, v := range h.Credentials {
+		k, v = repl.ReplaceAll(k, ""), repl.ReplaceAll(v, "")
+		if len(k) > 0 {
+			credentials[k] = v
+		}
+	}
+
 	authMethods := []socks5.Authenticator{socks5.NoAuthAuthenticator{}}
 	if len(h.Credentials) > 0 {
 		authMethods = []socks5.Authenticator{
 			socks5.UserPassAuthenticator{
-				Credentials: socks5.StaticCredentials(h.Credentials),
+				Credentials: socks5.StaticCredentials(credentials),
 			},
 		}
 	}
@@ -73,7 +82,7 @@ func (h *Socks5Handler) Provision(ctx caddy.Context) error {
 	h.server = socks5.NewServer(
 		socks5.WithLogger(&socks5Logger{l: ctx.Logger(h)}),
 		socks5.WithRule(rule),
-		socks5.WithBindIP(net.ParseIP(h.BindIP)),
+		socks5.WithBindIP(net.ParseIP(caddy.NewReplacer().ReplaceAll(h.BindIP, ""))),
 		socks5.WithAuthMethods(authMethods),
 		socks5.WithUpstream(h.Upstream),
 	)
@@ -92,8 +101,8 @@ func (h *Socks5Handler) Handle(cx *layer4.Connection, _ layer4.Handler) error {
 // UnmarshalCaddyfile sets up the Socks5Handler from Caddyfile tokens. Syntax:
 //
 //	socks5 {
-//		bind_ip <...>
-//		commands <...>
+//		bind_ip <address>
+//		commands <values...>
 //		credentials <username> <password> [<username> <password>]
 //	}
 //
@@ -118,11 +127,7 @@ func (h *Socks5Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			if d.CountRemainingArgs() != 1 {
 				return d.ArgErr()
 			}
-			_, bindIP := d.NextArg(), net.ParseIP(d.Val())
-			if bindIP == nil {
-				return d.Errf("parsing %s option '%s': invalid IP address", wrapper, optionName)
-			}
-			h.BindIP, hasBindIP = bindIP.String(), true
+			_, h.BindIP, hasBindIP = d.NextArg(), d.Val(), true
 		case "commands":
 			if d.CountRemainingArgs() == 0 {
 				return d.ArgErr()

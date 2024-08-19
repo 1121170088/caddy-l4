@@ -56,19 +56,25 @@ func (u *Upstream) String() string {
 }
 
 func (u *Upstream) provision(ctx caddy.Context, h *Handler) error {
+	repl := caddy.NewReplacer()
 	for _, dialAddr := range u.Dial {
+		// replace runtime placeholders
+		// Note: ReplaceKnown is used here instead of ReplaceAll to let unknown placeholders be replaced later
+		// in Handler.dialPeers. E.g. {l4.tls.server_name}:443 will allow for dynamic TLS SNI based upstreams.
+		replDialAddr := repl.ReplaceKnown(dialAddr, "")
+
 		// parse and validate address
-		addr, err := caddy.ParseNetworkAddress(dialAddr)
+		addr, err := caddy.ParseNetworkAddress(replDialAddr)
 		if err != nil {
 			return err
 		}
 		if addr.PortRangeSize() != 1 {
-			return fmt.Errorf("%s: port ranges not currently supported", dialAddr)
+			return fmt.Errorf("%s: port ranges not currently supported", replDialAddr)
 		}
 
 		// create or load peer info
 		p := &peer{address: addr}
-		existingPeer, loaded := peers.LoadOrStore(dialAddr, p)
+		existingPeer, loaded := peers.LoadOrStore(dialAddr, p) // peers are deleted in Handler.Cleanup
 		if loaded {
 			p = existingPeer.(*peer)
 		}
@@ -368,13 +374,7 @@ func (u *Upstream) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	if len(shortcutArgs) == 0 {
 		return d.Errf("malformed %s block: at least one %s address must be provided", wrapper, shortcutOptionName)
 	}
-	for _, arg := range shortcutArgs {
-		_, err := caddy.ParseNetworkAddress(arg)
-		if err != nil {
-			return d.Errf("parsing %s option '%s': %v", wrapper, shortcutOptionName, err)
-		}
-		u.Dial = append(u.Dial, arg)
-	}
+	u.Dial = append(u.Dial, shortcutArgs...)
 
 	return nil
 }
