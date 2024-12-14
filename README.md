@@ -34,8 +34,10 @@ Current matchers:
 - **layer4.matchers.http** - matches connections that start with HTTP requests. In addition, any [`http.matchers` modules](https://caddyserver.com/docs/modules/) can be used for matching on HTTP-specific properties of requests, such as header or path. Note that only the first request of each connection can be used for matching.
 - **layer4.matchers.local_ip** - matches connections based on local IP (or CIDR range).
 - **layer4.matchers.not** - matches connections that aren't matched by inner matcher sets.
+- **layer4.matchers.openvpn** - matches connections that look like [OpenVPN](https://openvpn.net/community-resources/openvpn-protocol/) connections.
 - **layer4.matchers.postgres** - matches connections that look like Postgres connections.
 - **layer4.matchers.proxy_protocol** - matches connections that start with [HAPROXY proxy protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt).
+- **layer4.matchers.quic** - matches connections that look like [QUIC](https://quic.xargs.org/). In addition, any [`tls.handshake_match` modules](https://caddyserver.com/docs/modules/) can be used for matching on TLS-specific properties of the ClientHello, such as ServerName (SNI).
 - **layer4.matchers.rdp** - matches connections that look like [RDP](https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-RDPBCGR/%5BMS-RDPBCGR%5D.pdf).
 - **layer4.matchers.regexp** - matches connections that have the first packet bytes matching a regular expression.
 - **layer4.matchers.remote_ip** - matches connections based on remote IP (or CIDR range).
@@ -43,6 +45,7 @@ Current matchers:
 - **layer4.matchers.socks5** - matches connections that look like [SOCKSv5](https://www.rfc-editor.org/rfc/rfc1928.html).
 - **layer4.matchers.ssh** - matches connections that look like SSH connections.
 - **layer4.matchers.tls** - matches connections that start with TLS handshakes. In addition, any [`tls.handshake_match` modules](https://caddyserver.com/docs/modules/) can be used for matching on TLS-specific properties of the ClientHello, such as ServerName (SNI).
+- **layer4.matchers.winbox** - matches connections that look like those initiated by [Winbox](https://help.mikrotik.com/docs/display/ROS/WinBox), a graphical tool for MikroTik hardware and software routers management.
 - **layer4.matchers.wireguard** - matches connections the look like [WireGuard](https://www.wireguard.com/protocol/) connections.
 - **layer4.matchers.xmpp** - matches connections that look like [XMPP](https://xmpp.org/about/technology-overview/).
 
